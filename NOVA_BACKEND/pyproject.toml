@@ -12,7 +12,7 @@ dependencies = [
     "openai>=2.29.0",
     "psycopg>=3.3.3",
     "pyjwt>=2.10.1",
-    "python-multipart>=0.0.22",
+    "python-multipart>=0.0.26",
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.41.0",
 ]
