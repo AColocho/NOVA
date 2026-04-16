@@ -1,6 +1,12 @@
-# NOVA
+<p align="center">
+  <img src="./images/novaLogo.png" alt="NOVA logo" width="180" />
+</p>
 
-NOVA is a two-part household dashboard for saving recipes, capturing receipts, building toward lightweight home analytics, and a home assistant.
+<h1 align="center">NOVA</h1>
+
+<p align="center">
+  NOVA is a two-part household dashboard for saving recipes, capturing receipts, building toward lightweight home analytics, and a home assistant.
+</p>
 
 This repository contains:
 
@@ -203,10 +209,8 @@ This dev flow:
 
 ## Roadmap
 
-- Finish frontend authentication and token handling
 - Ship the analytics dashboard with real spending summaries
 - Add automated tests for backend logic and frontend flows
-- Improve deployment ergonomics for self-hosted setups
 
 ## Additional Notes
 
