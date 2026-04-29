@@ -4,6 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir uv
 
 WORKDIR /app
