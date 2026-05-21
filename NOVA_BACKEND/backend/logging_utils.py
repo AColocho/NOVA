@@ -6,7 +6,9 @@ from typing import Any
 
 def configure_logging() -> None:
     """Configure application logging once for the whole process."""
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = os.getenv("LOG_LEVEL", "INFO").strip().strip("\"'").upper()
+    if log_level not in logging.getLevelNamesMapping():
+        log_level = "INFO"
 
     dictConfig(
         {
