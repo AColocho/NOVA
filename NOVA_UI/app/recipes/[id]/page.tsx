@@ -4,6 +4,12 @@ type RecipeDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
+export function generateStaticParams() {
+  return [{ id: "_static" }];
+}
+
+export const dynamicParams = false;
+
 export default async function RecipeDetailPage({
   params,
 }: RecipeDetailPageProps) {
