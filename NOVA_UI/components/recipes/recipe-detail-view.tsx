@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage, getRecipe } from "@/lib/api";
+import { getRecipeEditHref, resolveRecipeRouteId } from "@/lib/recipe-routes";
 import type { Ingredient, Recipe } from "@/types";
 
 type RecipeDetailViewProps = {
@@ -53,16 +54,23 @@ function RecipeDetailSkeleton() {
 }
 
 export function RecipeDetailView({ id }: RecipeDetailViewProps) {
+  const recipeId = resolveRecipeRouteId(id);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   const loadRecipe = useCallback(async (signal?: AbortSignal) => {
+    if (!recipeId) {
+      setErrorMessage("Recipe ID is missing from the URL.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await getRecipe(id, { signal });
+      const data = await getRecipe(recipeId, { signal });
       setRecipe(data);
     } catch (error) {
       if (signal?.aborted) {
@@ -75,7 +83,7 @@ export function RecipeDetailView({ id }: RecipeDetailViewProps) {
         setIsLoading(false);
       }
     }
-  }, [id]);
+  }, [recipeId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -134,7 +142,7 @@ export function RecipeDetailView({ id }: RecipeDetailViewProps) {
           </Link>
         </Button>
         <Button asChild>
-          <Link href={`/recipes/${id}/edit`}>
+          <Link href={getRecipeEditHref(recipeId || id)}>
             <PencilLine className="size-4" />
             Edit recipe
           </Link>
