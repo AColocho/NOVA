@@ -21,6 +21,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage, getReceipt, updateReceipt } from "@/lib/api";
+import {
+  getReceiptDetailHref,
+  resolveReceiptRouteId,
+} from "@/lib/receipt-routes";
 import type { Receipt, ReceiptDiscount, ReceiptDraft, ReceiptItem } from "@/types";
 
 type EditReceiptFormProps = {
@@ -206,6 +210,7 @@ function EditReceiptSkeleton() {
 
 export function EditReceiptForm({ id }: EditReceiptFormProps) {
   const router = useRouter();
+  const receiptId = resolveReceiptRouteId(id);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [formValues, setFormValues] = useState<ReceiptFormValues>({
     storeName: "",
@@ -235,11 +240,17 @@ export function EditReceiptForm({ id }: EditReceiptFormProps) {
   );
 
   const loadReceipt = useCallback(async (signal?: AbortSignal) => {
+    if (!receiptId) {
+      setErrorMessage("Receipt ID is missing from the URL.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await getReceipt(id, { signal });
+      const data = await getReceipt(receiptId, { signal });
       setReceipt(data);
       const nextValues = getReceiptFormValues(data);
       setFormValues(nextValues.formValues);
@@ -256,7 +267,7 @@ export function EditReceiptForm({ id }: EditReceiptFormProps) {
         setIsLoading(false);
       }
     }
-  }, [id]);
+  }, [receiptId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -334,14 +345,14 @@ export function EditReceiptForm({ id }: EditReceiptFormProps) {
     setErrorMessage("");
 
     try {
-      const savedReceipt = await updateReceipt(id, draft);
+      const savedReceipt = await updateReceipt(receiptId, draft);
 
       toast.success("Receipt updated", {
         description: `${savedReceipt.storeName} has been saved.`,
       });
 
       startTransition(() => {
-        router.push(`/receipts/${savedReceipt.id}`);
+        router.push(getReceiptDetailHref(savedReceipt.id));
       });
     } catch (error) {
       const message = getApiErrorMessage(error);
@@ -362,7 +373,7 @@ export function EditReceiptForm({ id }: EditReceiptFormProps) {
     return (
       <div className="space-y-4">
         <Button asChild variant="outline">
-          <Link href={`/receipts/${id}`}>
+          <Link href={getReceiptDetailHref(receiptId || id)}>
             <ArrowLeft className="size-4" />
             Back to receipt
           </Link>
@@ -397,7 +408,7 @@ export function EditReceiptForm({ id }: EditReceiptFormProps) {
         <div className="flex flex-col gap-4">
           <div>
             <Button asChild variant="outline">
-              <Link href={`/receipts/${id}`}>
+              <Link href={getReceiptDetailHref(receiptId || id)}>
                 <ArrowLeft className="size-4" />
                 Back to receipt
               </Link>

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage, getReceipts } from "@/lib/api";
+import { getReceiptDetailHref } from "@/lib/receipt-routes";
 import type { ReceiptSummary } from "@/types";
 
 function formatDate(value: string) {
@@ -148,7 +149,11 @@ export function ReceiptsList() {
       {!isLoading && !errorMessage && receipts.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {receipts.map((receipt) => (
-            <Link key={receipt.id} href={`/receipts/${receipt.id}`} className="group block">
+            <Link
+              key={receipt.id}
+              href={getReceiptDetailHref(receipt.id)}
+              className="group block"
+            >
               <Card className="h-full transition-transform duration-200 group-hover:-translate-y-1">
                 <CardHeader className="gap-4">
                   <div className="flex items-start justify-between gap-4">

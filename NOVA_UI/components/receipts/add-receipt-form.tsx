@@ -32,6 +32,7 @@ import {
   createReceiptFromScan,
   getApiErrorMessage,
 } from "@/lib/api";
+import { getReceiptDetailHref } from "@/lib/receipt-routes";
 import type { ReceiptDiscount, ReceiptDraft, ReceiptItem } from "@/types";
 
 type EditableDiscount = {
@@ -317,7 +318,7 @@ export function AddReceiptForm() {
       });
 
       startTransition(() => {
-        router.push(`/receipts/${savedReceipt.id}`);
+        router.push(getReceiptDetailHref(savedReceipt.id));
       });
     } catch (error) {
       const message = getApiErrorMessage(error);
