@@ -397,6 +397,7 @@ class Logic(ConnectionDB):
             system_prompt=(
                 "Extract exactly one receipt from the provided uploaded file. "
                 "Return data that matches the receipt creation schema. "
+                "Return receipt_date in YYYY-MM-DD format. "
                 "Use the scan_location provided in the prompt when available. "
                 "Do not invent missing values. Use null for unknown invoice_number, city, "
                 "state, and scan_location. Use USD unless the receipt clearly indicates "

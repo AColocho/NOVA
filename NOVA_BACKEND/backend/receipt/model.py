@@ -42,10 +42,21 @@ class _ReceiptDateMixin(BaseModel):
             return value.date()
 
         if isinstance(value, str):
+            normalized_value = value.strip()
             try:
-                return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+                return datetime.fromisoformat(
+                    normalized_value.replace("Z", "+00:00")
+                ).date()
             except ValueError:
-                return value
+                pass
+
+            for date_format in ("%m/%d/%y", "%m/%d/%Y", "%m-%d-%y", "%m-%d-%Y"):
+                try:
+                    return datetime.strptime(normalized_value, date_format).date()
+                except ValueError:
+                    continue
+
+            return value
 
         return value
 
