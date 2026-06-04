@@ -24,6 +24,7 @@ import {
   createRecipeFromUrl,
   getApiErrorMessage,
 } from "@/lib/api";
+import { getRecipeDetailHref } from "@/lib/recipe-routes";
 import { buildRecipeDraft, getEmptyRecipeFormValues } from "@/lib/recipe-form";
 
 const helperCopy = [
@@ -109,7 +110,7 @@ export function AddRecipeForm() {
       });
 
       startTransition(() => {
-        router.push(`/recipes/${savedRecipe.id}`);
+        router.push(getRecipeDetailHref(savedRecipe.id));
       });
     } catch (error) {
       const message = getApiErrorMessage(error);

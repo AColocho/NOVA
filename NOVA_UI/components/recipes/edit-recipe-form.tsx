@@ -23,6 +23,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { getApiErrorMessage, getRecipe, updateRecipe } from "@/lib/api";
 import {
+  getRecipeDetailHref,
+  resolveRecipeRouteId,
+} from "@/lib/recipe-routes";
+import {
   buildRecipeDraft,
   getEmptyRecipeFormValues,
   getRecipeFormValues,
@@ -53,6 +57,7 @@ function EditRecipeSkeleton() {
 
 export function EditRecipeForm({ id }: EditRecipeFormProps) {
   const router = useRouter();
+  const recipeId = resolveRecipeRouteId(id);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [formValues, setFormValues] = useState<RecipeFormValues>(
     getEmptyRecipeFormValues,
@@ -75,11 +80,17 @@ export function EditRecipeForm({ id }: EditRecipeFormProps) {
   }, [formValues.ingredientsText, formValues.stepsText]);
 
   const loadRecipe = useCallback(async (signal?: AbortSignal) => {
+    if (!recipeId) {
+      setErrorMessage("Recipe ID is missing from the URL.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await getRecipe(id, { signal });
+      const data = await getRecipe(recipeId, { signal });
       setRecipe(data);
       setFormValues(getRecipeFormValues(data));
     } catch (error) {
@@ -93,7 +104,7 @@ export function EditRecipeForm({ id }: EditRecipeFormProps) {
         setIsLoading(false);
       }
     }
-  }, [id]);
+  }, [recipeId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,14 +132,14 @@ export function EditRecipeForm({ id }: EditRecipeFormProps) {
     setErrorMessage("");
 
     try {
-      const savedRecipe = await updateRecipe(id, draft);
+      const savedRecipe = await updateRecipe(recipeId, draft);
 
       toast.success("Recipe updated", {
         description: `"${savedRecipe.title}" has been saved.`,
       });
 
       startTransition(() => {
-        router.push(`/recipes/${savedRecipe.id}`);
+        router.push(getRecipeDetailHref(savedRecipe.id));
       });
     } catch (error) {
       const message = getApiErrorMessage(error);
@@ -149,7 +160,7 @@ export function EditRecipeForm({ id }: EditRecipeFormProps) {
     return (
       <div className="space-y-4">
         <Button asChild variant="outline">
-          <Link href={`/recipes/${id}`}>
+          <Link href={getRecipeDetailHref(recipeId || id)}>
             <ArrowLeft className="size-4" />
             Back to recipe
           </Link>
@@ -184,7 +195,7 @@ export function EditRecipeForm({ id }: EditRecipeFormProps) {
         <div className="flex flex-col gap-4">
           <div>
             <Button asChild variant="outline">
-              <Link href={`/recipes/${id}`}>
+              <Link href={getRecipeDetailHref(recipeId || id)}>
                 <ArrowLeft className="size-4" />
                 Back to recipe
               </Link>

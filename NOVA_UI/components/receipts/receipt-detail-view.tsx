@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { deleteReceipt, getApiErrorMessage, getReceipt } from "@/lib/api";
+import { getReceiptEditHref, resolveReceiptRouteId } from "@/lib/receipt-routes";
 import type { Receipt, ReceiptDiscount, ReceiptItem } from "@/types";
 
 type ReceiptDetailViewProps = {
@@ -220,17 +221,24 @@ function ItemCard({ item, currencyCode }: { item: ReceiptItem; currencyCode: str
 
 export function ReceiptDetailView({ id }: ReceiptDetailViewProps) {
   const router = useRouter();
+  const receiptId = resolveReceiptRouteId(id);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const loadReceipt = useCallback(async (signal?: AbortSignal) => {
+    if (!receiptId) {
+      setErrorMessage("Receipt ID is missing from the URL.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await getReceipt(id, { signal });
+      const data = await getReceipt(receiptId, { signal });
       setReceipt(data);
     } catch (error) {
       if (signal?.aborted) {
@@ -243,7 +251,7 @@ export function ReceiptDetailView({ id }: ReceiptDetailViewProps) {
         setIsLoading(false);
       }
     }
-  }, [id]);
+  }, [receiptId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -269,7 +277,7 @@ export function ReceiptDetailView({ id }: ReceiptDetailViewProps) {
     setErrorMessage("");
 
     try {
-      await deleteReceipt(id);
+      await deleteReceipt(receiptId);
       toast.success("Receipt deleted", {
         description: `${receipt.storeName} has been removed.`,
       });
@@ -337,7 +345,7 @@ export function ReceiptDetailView({ id }: ReceiptDetailViewProps) {
           </Link>
         </Button>
         <Button asChild>
-          <Link href={`/receipts/${id}/edit`}>
+          <Link href={getReceiptEditHref(receiptId || id)}>
             <PencilLine className="size-4" />
             Edit receipt
           </Link>

@@ -8,6 +8,12 @@ export const metadata = {
   title: "Edit Receipt",
 };
 
+export function generateStaticParams() {
+  return [{ id: "_static" }];
+}
+
+export const dynamicParams = false;
+
 export default async function EditReceiptPage({ params }: EditReceiptPageProps) {
   const { id } = await params;
 

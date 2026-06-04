@@ -4,6 +4,12 @@ type ReceiptDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
+export function generateStaticParams() {
+  return [{ id: "_static" }];
+}
+
+export const dynamicParams = false;
+
 export default async function ReceiptDetailPage({
   params,
 }: ReceiptDetailPageProps) {

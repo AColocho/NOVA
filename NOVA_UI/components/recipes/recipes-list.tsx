@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage, getRecipes } from "@/lib/api";
+import { getRecipeDetailHref } from "@/lib/recipe-routes";
 import type { RecipeSummary } from "@/types";
 
 function RecipeListSkeleton() {
@@ -116,7 +117,11 @@ export function RecipesList() {
       {!isLoading && !errorMessage && recipes.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {recipes.map((recipe) => (
-            <Link key={recipe.id} href={`/recipes/${recipe.id}`} className="group block">
+            <Link
+              key={recipe.id}
+              href={getRecipeDetailHref(recipe.id)}
+              className="group block"
+            >
               <Card className="h-full transition-transform duration-200 group-hover:-translate-y-1">
                 <CardHeader className="gap-4">
                   <div className="flex size-14 items-center justify-center rounded-[1.25rem] bg-secondary text-secondary-foreground">
