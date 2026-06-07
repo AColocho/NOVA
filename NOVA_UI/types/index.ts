@@ -8,8 +8,10 @@ export type AppDefinition = {
 export type AuthUser = {
   userId: string;
   homeId: string;
-  email: string;
+  homeName: string;
+  loginName: string;
   displayName?: string;
+  password?: string;
   isHomeAdmin: boolean;
   isActive?: boolean;
 };
@@ -24,13 +26,20 @@ export type AuthSession = {
 };
 
 export type LoginCredentials = {
-  email: string;
-  password: string;
+  homeName: string;
+  loginName: string;
+  password?: string;
 };
 
 export type RegisterHomePayload = LoginCredentials & {
-  homeName: string;
   displayName?: string;
+};
+
+export type UserDraft = {
+  loginName: string;
+  displayName?: string;
+  password?: string;
+  isActive: boolean;
 };
 
 export type Ingredient = {

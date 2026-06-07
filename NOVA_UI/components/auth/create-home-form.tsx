@@ -18,8 +18,8 @@ export function CreateHomeForm() {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
   const [homeName, setHomeName] = useState("");
+  const [loginName, setLoginName] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -27,7 +27,7 @@ export function CreateHomeForm() {
     event.preventDefault();
     setErrorMessage("");
 
-    if (password !== confirmPassword) {
+    if (password.trim() && password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
       return;
     }
@@ -36,9 +36,9 @@ export function CreateHomeForm() {
       try {
         await registerHome({
           homeName: homeName.trim(),
+          loginName: loginName.trim(),
           displayName: displayName.trim(),
-          email: email.trim(),
-          password,
+          password: password.trim() ? password : undefined,
         });
 
         toast.success("Home created.");
@@ -54,7 +54,7 @@ export function CreateHomeForm() {
     <AuthPageShell
       eyebrow="First setup"
       title="Set up the home that brings everything together."
-      description="This creates the first account for your home and signs you in right away. After that, recipes and receipts stay together in one place."
+      description="This creates the home and makes the first user its admin. After that, recipes and receipts stay together in one place."
       badge="Create Home"
       footer={
         <p>
@@ -87,53 +87,52 @@ export function CreateHomeForm() {
 
         <label className="block space-y-2">
           <span className="text-sm font-semibold text-foreground">
-            Display name
+            Admin name
           </span>
           <Input
-            autoComplete="name"
+            autoComplete="username"
             placeholder="Jarvis"
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-          />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-foreground">Email</span>
-          <Input
-            type="email"
-            autoComplete="email"
-            placeholder="alex@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-foreground">Password</span>
-          <Input
-            type="password"
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={8}
+            value={loginName}
+            onChange={(event) => setLoginName(event.target.value)}
             required
           />
         </label>
 
         <label className="block space-y-2">
           <span className="text-sm font-semibold text-foreground">
-            Confirm password
+            Display name
+          </span>
+          <Input
+            autoComplete="name"
+            placeholder="Jarvis Colocho"
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-foreground">
+            Pass phrase or code
           </span>
           <Input
             type="password"
             autoComplete="new-password"
-            placeholder="Repeat the password"
+            placeholder="Optional"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-foreground">
+            Confirm code
+          </span>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            placeholder="Repeat the code if one is set"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            minLength={8}
-            required
           />
         </label>
 

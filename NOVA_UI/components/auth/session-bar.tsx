@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -31,19 +32,26 @@ export function SessionBar() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">
-            {user.displayName || user.email}
+            {user.displayName || user.loginName}
           </p>
           <p className="truncate text-sm text-muted-foreground">
-            {user.email}
+            {user.homeName} · {user.loginName}
             {user.isHomeAdmin ? " · Main account" : ""}
           </p>
         </div>
       </div>
 
-      <Button variant="outline" onClick={handleLogout}>
-        <LogOut className="size-4" />
-        Log out
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {user.isHomeAdmin ? (
+          <Button asChild variant="outline">
+            <Link href="/admin/users">Users</Link>
+          </Button>
+        ) : null}
+        <Button variant="outline" onClick={handleLogout}>
+          <LogOut className="size-4" />
+          Log out
+        </Button>
+      </div>
     </header>
   );
 }
