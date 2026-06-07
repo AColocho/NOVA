@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import HTTPException, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from ..db_connector import ConnectionDB
 from ..db_management.internal import Receipt, ReceiptDiscount, ReceiptItem
@@ -334,7 +334,7 @@ class Logic(ConnectionDB):
 
     @classmethod
     def _apply_receipt_item_updates(
-        cls, receipt: Receipt, items: list[ReceiptItemCreate]
+        cls, receipt: Receipt, items: list[ReceiptItemCreate], session: Session
     ) -> None:
         """Replace all receipt items and nested item-level discounts."""
         item_level_discounts = [
@@ -343,9 +343,11 @@ class Logic(ConnectionDB):
         for discount in item_level_discounts:
             receipt.discounts.remove(discount)
 
-        receipt.items[:] = [
+        receipt.items.clear()
+        session.flush()
+        receipt.items.extend(
             cls._build_receipt_item(item, receipt=receipt) for item in items
-        ]
+        )
 
     def create_receipt(
         self, payload: ReceiptCreate, response: Response, home_id: UUID, user_id: UUID
@@ -585,6 +587,7 @@ class Logic(ConnectionDB):
                 if "items" in payload.model_fields_set and payload.items is not None:
                     self._apply_receipt_item_updates(
                         receipt=receipt,
+                        session=session,
                         items=[
                             ReceiptItemCreate.model_validate(item.model_dump())
                             for item in payload.items
