@@ -102,14 +102,3 @@ Every pull request should state:
 - any follow-up work or known limitations
 
 Screenshots are helpful for UI changes. API or schema changes should call out any required environment, setup, or migration steps.
-
-## Licensing
-
-NOVA is publicly available under the GNU Affero General Public License v3.0. The license allows use, copying, modification, distribution, hosting, and commercial sale without a license fee, while requiring covered modified versions to remain open source under the same license.
-
-NOVA does not require a Contributor License Agreement or copyright assignment. By intentionally submitting a contribution to this project, you agree that:
-
-- You have the right to submit the contribution.
-- You retain copyright in your contribution.
-- Your contribution is licensed to the project and downstream users under the same AGPL v3.0 terms as NOVA.
-- You will not submit code or assets that conflict with NOVA's AGPL v3.0 license.
