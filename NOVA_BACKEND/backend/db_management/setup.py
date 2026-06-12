@@ -53,6 +53,16 @@ LEGACY_COLUMNS = {
             "REFERENCES auth.users(id) ON DELETE SET NULL",
         ),
     },
+    ("movie", "movies"): {
+        "home_id": (
+            "UUID",
+            "REFERENCES auth.homes(id) ON DELETE CASCADE",
+        ),
+        "created_by_user_id": (
+            "UUID",
+            "REFERENCES auth.users(id) ON DELETE SET NULL",
+        ),
+    },
 }
 
 REQUIRED_INDEXES = {
@@ -71,6 +81,15 @@ REQUIRED_INDEXES = {
         "ix_receipt_receipts_home_id": ["home_id"],
         "ix_receipt_receipts_created_by_user_id": ["created_by_user_id"],
     },
+    ("movie", "movies"): {
+        "ix_movie_movies_home_id": ["home_id"],
+        "ix_movie_movies_created_by_user_id": ["created_by_user_id"],
+        "ix_movie_movies_tmdb_id": ["tmdb_id"],
+    },
+    ("movie", "movie_ratings"): {
+        "ix_movie_movie_ratings_movie_id": ["movie_id"],
+        "ix_movie_movie_ratings_user_id": ["user_id"],
+    },
 }
 
 REQUIRED_UNIQUE_INDEXES = {
@@ -86,6 +105,11 @@ REQUIRED_UNIQUE_INDEXES = {
         CREATE UNIQUE INDEX uq_auth_users_one_admin_per_home
         ON auth.users (home_id)
         WHERE is_home_admin
+    """,
+    "uq_movies_home_tmdb_id": """
+        CREATE UNIQUE INDEX uq_movies_home_tmdb_id
+        ON movie.movies (home_id, tmdb_id)
+        WHERE tmdb_id IS NOT NULL
     """,
 }
 
@@ -291,26 +315,25 @@ def _ensure_auth_login_columns_populated(connection: ConnectionDB) -> None:
         )
 
 
-def _ensure_auth_constraints_exist(connection: ConnectionDB) -> None:
+def _ensure_unique_indexes_exist(connection: ConnectionDB) -> None:
     with connection.engine.begin() as db_connection:
         inspector = inspect(db_connection)
-        if "homes" not in set(inspector.get_table_names(schema="auth")):
-            return
-        if "users" not in set(inspector.get_table_names(schema="auth")):
-            return
 
         existing_indexes = set()
-        for table_name in ("homes", "users"):
-            existing_indexes.update(
-                index["name"]
-                for index in inspector.get_indexes(table_name=table_name, schema="auth")
-            )
-            existing_indexes.update(
-                constraint["name"]
-                for constraint in inspector.get_unique_constraints(
-                    table_name=table_name, schema="auth"
+        for schema_name in ("auth", "movie"):
+            for table_name in inspector.get_table_names(schema=schema_name):
+                existing_indexes.update(
+                    index["name"]
+                    for index in inspector.get_indexes(
+                        table_name=table_name, schema=schema_name
+                    )
                 )
-            )
+                existing_indexes.update(
+                    constraint["name"]
+                    for constraint in inspector.get_unique_constraints(
+                        table_name=table_name, schema=schema_name
+                    )
+                )
 
         for index_name, create_sql in REQUIRED_UNIQUE_INDEXES.items():
             if index_name in existing_indexes:
@@ -327,7 +350,7 @@ def create_schema_and_tables() -> None:
     _ensure_columns_exist(connection)
     _ensure_auth_login_columns_populated(connection)
     _ensure_indexes_exist(connection)
-    _ensure_auth_constraints_exist(connection)
+    _ensure_unique_indexes_exist(connection)
 
 
 if __name__ == "__main__":
