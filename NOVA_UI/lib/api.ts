@@ -12,6 +12,10 @@ import type {
   AuthUser,
   Ingredient,
   LoginCredentials,
+  ManualMovieDraft,
+  Movie,
+  MovieRating,
+  MovieSummary,
   RegisterHomePayload,
   Receipt,
   ReceiptDiscount,
@@ -22,6 +26,7 @@ import type {
   RecipeDraft,
   RecipeStep,
   RecipeSummary,
+  TMDBMovieSearchResult,
   UserDraft,
 } from "@/types";
 
@@ -61,6 +66,7 @@ type RetriableRequestConfig = {
 };
 
 const AUTH_API_PREFIX = "/api/v1/auth";
+const MOVIE_API_PREFIX = "/api/v1/movie";
 const RECIPE_API_PREFIX = "/api/v1/recipe";
 const RECEIPT_API_PREFIX = "/api/v1/receipt";
 let refreshRequest: Promise<string> | null = null;
@@ -257,6 +263,83 @@ function normalizeAuthSession(value: unknown): AuthSession {
     accessTokenExpiresIn: toNumber(record.access_token_expires_in),
     refreshTokenExpiresIn: toNumber(record.refresh_token_expires_in),
     user: normalizeAuthUser(record.user),
+  };
+}
+
+function normalizeMovieRating(value: unknown): MovieRating {
+  const record = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    userId: toText(record.user_id),
+    userName: toText(record.user_name, "Unknown user"),
+    rating: toNumber(record.rating),
+    updatedAt: toText(record.updated_at),
+  };
+}
+
+function normalizeMovieSummary(value: unknown): MovieSummary {
+  const record = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    id: toText(record.movie_id ?? record.id),
+    title: toText(record.title, "Untitled movie"),
+    year: toOptionalNumber(record.year),
+    releaseDate: toText(record.release_date) || undefined,
+    posterUrl: toText(record.poster_url) || undefined,
+    posterPath: toText(record.poster_path) || undefined,
+    overview: toText(record.overview) || undefined,
+    averageRating: toOptionalNumber(record.average_rating),
+    currentUserRating: toOptionalNumber(record.current_user_rating),
+    ratingCount: toNumber(record.rating_count),
+  };
+}
+
+function normalizeMovie(value: unknown): Movie {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const summary = normalizeMovieSummary(record);
+  const ratings = Array.isArray(record.ratings)
+    ? record.ratings.map(normalizeMovieRating)
+    : [];
+  const genres = Array.isArray(record.genres)
+    ? record.genres.map((genre) => toText(genre)).filter(Boolean)
+    : [];
+  const creatorRecord = (record.creator ?? {}) as Record<string, unknown>;
+
+  return {
+    ...summary,
+    tmdbId: toOptionalNumber(record.tmdb_id),
+    source: record.source === "manual" ? "manual" : "tmdb",
+    originalTitle: toText(record.original_title) || undefined,
+    runtimeMinutes: toOptionalNumber(record.runtime_minutes),
+    backdropUrl: toText(record.backdrop_url) || undefined,
+    backdropPath: toText(record.backdrop_path) || undefined,
+    tmdbVoteAverage: toOptionalNumber(record.tmdb_vote_average),
+    tmdbVoteCount: toOptionalNumber(record.tmdb_vote_count),
+    genres,
+    creator: {
+      userId: toText(creatorRecord.user_id) || undefined,
+      name: toText(creatorRecord.name) || undefined,
+    },
+    ratings,
+    createdAt: toText(record.created_at) || undefined,
+    updatedAt: toText(record.updated_at) || undefined,
+  };
+}
+
+function normalizeTMDBMovieSearchResult(value: unknown): TMDBMovieSearchResult {
+  const record = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    tmdbId: toNumber(record.tmdb_id),
+    title: toText(record.title, "Untitled movie"),
+    originalTitle: toText(record.original_title) || undefined,
+    overview: toText(record.overview) || undefined,
+    releaseDate: toText(record.release_date) || undefined,
+    year: toOptionalNumber(record.year),
+    posterUrl: toText(record.poster_url) || undefined,
+    backdropUrl: toText(record.backdrop_url) || undefined,
+    tmdbVoteAverage: toOptionalNumber(record.tmdb_vote_average),
+    tmdbVoteCount: toOptionalNumber(record.tmdb_vote_count),
   };
 }
 
@@ -466,6 +549,125 @@ export async function transferAdmin(userId: string): Promise<AuthUser> {
     user_id: userId,
   });
   return normalizeAuthUser(data.user);
+}
+
+export async function searchTMDBMovies(
+  query: string,
+  options?: RequestOptions & { page?: number },
+): Promise<TMDBMovieSearchResult[]> {
+  const { data } = await api.get(`${MOVIE_API_PREFIX}/search_tmdb`, {
+    params: { query, page: options?.page ?? 1 },
+    signal: options?.signal,
+  });
+
+  if (!Array.isArray(data?.results)) {
+    return [];
+  }
+
+  return (data.results as unknown[])
+    .map(normalizeTMDBMovieSearchResult)
+    .filter((movie) => movie.tmdbId > 0);
+}
+
+export async function getMovies(
+  options?: PaginationOptions,
+): Promise<MovieSummary[]> {
+  const { offset = 0, limit = 20, signal } = options ?? {};
+  const { data } = await api.get(`${MOVIE_API_PREFIX}/get_metadata`, {
+    params: { offset, limit },
+    signal,
+  });
+
+  if (!Array.isArray(data?.movies)) {
+    return [];
+  }
+
+  return (data.movies as unknown[])
+    .map(normalizeMovieSummary)
+    .filter((movie) => movie.id.trim().length > 0);
+}
+
+export async function getMovie(
+  id: string,
+  options?: RequestOptions,
+): Promise<Movie> {
+  const { data } = await api.get(`${MOVIE_API_PREFIX}/get_movie`, {
+    params: { movie_id: id },
+    signal: options?.signal,
+  });
+  return normalizeMovie(data);
+}
+
+export async function createMovieFromTMDB(
+  tmdbId: number,
+  initialRating?: number,
+  options?: RequestOptions,
+): Promise<Movie> {
+  const { data } = await api.post(
+    `${MOVIE_API_PREFIX}/create_from_tmdb`,
+    {
+      tmdb_id: tmdbId,
+      initial_rating: initialRating ?? null,
+    },
+    options,
+  );
+  const movieId = toText(data?.movie_id);
+
+  if (!movieId) {
+    throw new Error("Your movie was saved, but it could not be opened right away.");
+  }
+
+  return getMovie(movieId, options);
+}
+
+export async function createManualMovie(
+  payload: ManualMovieDraft,
+  options?: RequestOptions,
+): Promise<Movie> {
+  const { data } = await api.post(
+    `${MOVIE_API_PREFIX}/create_manual`,
+    {
+      title: payload.title,
+      year: payload.year ?? null,
+      overview: payload.overview || null,
+      runtime_minutes: payload.runtimeMinutes ?? null,
+      poster_path: payload.posterPath || null,
+      genres: payload.genres ?? [],
+      initial_rating: payload.initialRating ?? null,
+    },
+    options,
+  );
+  const movieId = toText(data?.movie_id);
+
+  if (!movieId) {
+    throw new Error("Your movie was saved, but it could not be opened right away.");
+  }
+
+  return getMovie(movieId, options);
+}
+
+export async function setMovieRating(
+  movieId: string,
+  rating: number,
+  options?: RequestOptions,
+): Promise<Movie> {
+  await api.put(
+    `${MOVIE_API_PREFIX}/set_rating`,
+    { movie_id: movieId, rating },
+    options,
+  );
+
+  return getMovie(movieId, options);
+}
+
+export async function deleteMovie(
+  movieId: string,
+  options?: RequestOptions,
+): Promise<void> {
+  await api.delete(`${MOVIE_API_PREFIX}/delete_movie`, {
+    data: { movie_id: movieId },
+    signal: options?.signal,
+  });
 }
 
 export async function getRecipes(

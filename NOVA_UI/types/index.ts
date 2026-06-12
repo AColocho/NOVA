@@ -135,6 +135,68 @@ export type ReceiptDraft = {
   items: ReceiptItem[];
 };
 
+export type MovieRating = {
+  userId: string;
+  userName: string;
+  rating: number;
+  updatedAt: string;
+};
+
+export type MovieSummary = {
+  id: string;
+  title: string;
+  year?: number;
+  releaseDate?: string;
+  posterUrl?: string;
+  posterPath?: string;
+  overview?: string;
+  averageRating?: number;
+  currentUserRating?: number;
+  ratingCount: number;
+};
+
+export type Movie = MovieSummary & {
+  tmdbId?: number;
+  source: "tmdb" | "manual";
+  originalTitle?: string;
+  runtimeMinutes?: number;
+  backdropUrl?: string;
+  backdropPath?: string;
+  tmdbVoteAverage?: number;
+  tmdbVoteCount?: number;
+  genres: string[];
+  creator?: {
+    userId?: string;
+    name?: string;
+  };
+  ratings: MovieRating[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TMDBMovieSearchResult = {
+  tmdbId: number;
+  title: string;
+  originalTitle?: string;
+  overview?: string;
+  releaseDate?: string;
+  year?: number;
+  posterUrl?: string;
+  backdropUrl?: string;
+  tmdbVoteAverage?: number;
+  tmdbVoteCount?: number;
+};
+
+export type ManualMovieDraft = {
+  title: string;
+  year?: number;
+  overview?: string;
+  runtimeMinutes?: number;
+  genres?: string[];
+  posterPath?: string;
+  initialRating?: number;
+};
+
 export type SpendPoint = {
   date: string;
   total: number;
