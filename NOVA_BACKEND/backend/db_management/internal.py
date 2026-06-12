@@ -3,12 +3,25 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import UUID as SQLUUID
-from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey,
-                        Integer, Numeric, String, Text, UniqueConstraint, event,
-                        func, select)
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    event,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import (DeclarativeBase, Mapped, Session, mapped_column,
-                            relationship)
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -17,12 +30,18 @@ class Base(DeclarativeBase):
 
 class Home(Base):
     __tablename__ = "homes"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        UniqueConstraint("name_normalized", name="uq_auth_homes_name_normalized"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         SQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    name_normalized: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -43,7 +62,15 @@ class Home(Base):
 class UserAuth(Base):
     __tablename__ = "users"
     __table_args__ = (
-        UniqueConstraint("email", name="uq_auth_users_email"),
+        UniqueConstraint(
+            "home_id", "login_name_normalized", name="uq_auth_users_home_login_name"
+        ),
+        Index(
+            "uq_auth_users_one_admin_per_home",
+            "home_id",
+            unique=True,
+            postgresql_where=text("is_home_admin"),
+        ),
         {"schema": "auth"},
     )
 
@@ -56,9 +83,14 @@ class UserAuth(Base):
         nullable=False,
         index=True,
     )
-    email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
+    login_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    login_name_normalized: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )
     display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    password_plaintext: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_home_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -343,9 +375,7 @@ class ReceiptItem(Base):
 class ReceiptDiscount(Base):
     __tablename__ = "receipt_discounts"
     __table_args__ = (
-        CheckConstraint(
-            "amount >= 0", name="ck_receipt_discounts_amount_non_negative"
-        ),
+        CheckConstraint("amount >= 0", name="ck_receipt_discounts_amount_non_negative"),
         {"schema": "receipt"},
     )
 

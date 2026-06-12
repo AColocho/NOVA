@@ -1,34 +1,36 @@
 from typing import Annotated
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-EmailString = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=3,
-        max_length=320,
-        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
-    ),
-]
-PasswordString = Annotated[str, StringConstraints(min_length=8, max_length=200)]
+OptionalCode = str | None
 
 
-class RegisterHome(BaseModel):
+class _CodeMixin(BaseModel):
+    @field_validator("password", mode="before", check_fields=False)
+    @classmethod
+    def _blank_password_to_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+class RegisterHome(_CodeMixin):
     model_config = ConfigDict(extra="forbid")
 
     home_name: NonEmptyString = Field(max_length=120)
-    email: EmailString
-    password: PasswordString
+    login_name: NonEmptyString = Field(max_length=120)
+    password: OptionalCode = None
     display_name: str | None = Field(default=None, max_length=120)
 
 
-class Authenticate(BaseModel):
+class Authenticate(_CodeMixin):
     model_config = ConfigDict(extra="forbid")
 
-    email: EmailString
-    password: PasswordString
+    home_name: NonEmptyString = Field(max_length=120)
+    login_name: NonEmptyString = Field(max_length=120)
+    password: OptionalCode = None
 
 
 class RefreshTokenRequest(BaseModel):
@@ -37,13 +39,29 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: NonEmptyString
 
 
-class CreateUser(BaseModel):
+class CreateUser(_CodeMixin):
     model_config = ConfigDict(extra="forbid")
 
-    email: EmailString
-    password: PasswordString
+    login_name: NonEmptyString = Field(max_length=120)
+    password: OptionalCode = None
     display_name: str | None = Field(default=None, max_length=120)
-    is_home_admin: bool = False
+    is_active: bool = True
+
+
+class UpdateUser(_CodeMixin):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: UUID
+    login_name: NonEmptyString = Field(max_length=120)
+    password: OptionalCode = None
+    display_name: str | None = Field(default=None, max_length=120)
+    is_active: bool = True
+
+
+class TransferAdmin(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: UUID
 
 
 class UserSummary(BaseModel):
@@ -51,10 +69,15 @@ class UserSummary(BaseModel):
 
     user_id: str
     home_id: str
-    email: str
+    home_name: str
+    login_name: str
     display_name: str | None
     is_home_admin: bool
     is_active: bool
+
+
+class ManagedUserSummary(UserSummary):
+    password: str | None
 
 
 class AuthTokens(BaseModel):
@@ -68,16 +91,16 @@ class AuthTokens(BaseModel):
     user: UserSummary
 
 
-class CreateUserResponse(BaseModel):
+class UserResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    user: UserSummary
+    user: ManagedUserSummary
 
 
 class ListUsersResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    users: list[UserSummary]
+    users: list[ManagedUserSummary]
 
 
 class MeResponse(BaseModel):
@@ -85,6 +108,7 @@ class MeResponse(BaseModel):
 
     user_id: str
     home_id: str
-    email: str
+    home_name: str
+    login_name: str
     display_name: str | None
     is_home_admin: bool

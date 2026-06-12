@@ -22,6 +22,7 @@ import type {
   RecipeDraft,
   RecipeStep,
   RecipeSummary,
+  UserDraft,
 } from "@/types";
 
 const API_BASE_URL =
@@ -235,8 +236,11 @@ function normalizeAuthUser(value: unknown): AuthUser {
   return {
     userId: toText(record.user_id),
     homeId: toText(record.home_id),
-    email: toText(record.email),
+    homeName: toText(record.home_name),
+    loginName: toText(record.login_name),
     displayName: toText(record.display_name) || undefined,
+    password:
+      typeof record.password === "string" ? record.password : undefined,
     isHomeAdmin: Boolean(record.is_home_admin),
     isActive:
       typeof record.is_active === "boolean" ? record.is_active : undefined,
@@ -391,8 +395,9 @@ export async function login(
   credentials: LoginCredentials,
 ): Promise<AuthSession> {
   const { data } = await api.post(`${AUTH_API_PREFIX}/login`, {
-    email: credentials.email,
-    password: credentials.password,
+    home_name: credentials.homeName,
+    login_name: credentials.loginName,
+    password: credentials.password?.trim() ? credentials.password : null,
   });
   const session = normalizeAuthSession(data);
   storeAuthSession(session);
@@ -404,8 +409,8 @@ export async function registerHome(
 ): Promise<AuthSession> {
   const { data } = await api.post(`${AUTH_API_PREFIX}/create_home`, {
     home_name: payload.homeName,
-    email: payload.email,
-    password: payload.password,
+    login_name: payload.loginName,
+    password: payload.password?.trim() ? payload.password : null,
     display_name: payload.displayName?.trim() || null,
   });
   const session = normalizeAuthSession(data);
@@ -418,6 +423,49 @@ export async function getCurrentUser(options?: RequestOptions): Promise<AuthUser
     signal: options?.signal,
   });
   return normalizeAuthUser(data);
+}
+
+export async function listUsers(options?: RequestOptions): Promise<AuthUser[]> {
+  const { data } = await api.get(`${AUTH_API_PREFIX}/users`, {
+    signal: options?.signal,
+  });
+
+  if (!Array.isArray(data?.users)) {
+    return [];
+  }
+
+  return data.users.map(normalizeAuthUser);
+}
+
+export async function createUser(payload: UserDraft): Promise<AuthUser> {
+  const { data } = await api.post(`${AUTH_API_PREFIX}/create_user`, {
+    login_name: payload.loginName,
+    display_name: payload.displayName?.trim() || null,
+    password: payload.password?.trim() ? payload.password : null,
+    is_active: payload.isActive,
+  });
+  return normalizeAuthUser(data.user);
+}
+
+export async function updateUser(
+  userId: string,
+  payload: UserDraft,
+): Promise<AuthUser> {
+  const { data } = await api.post(`${AUTH_API_PREFIX}/update_user`, {
+    user_id: userId,
+    login_name: payload.loginName,
+    display_name: payload.displayName?.trim() || null,
+    password: payload.password?.trim() ? payload.password : null,
+    is_active: payload.isActive,
+  });
+  return normalizeAuthUser(data.user);
+}
+
+export async function transferAdmin(userId: string): Promise<AuthUser> {
+  const { data } = await api.post(`${AUTH_API_PREFIX}/transfer_admin`, {
+    user_id: userId,
+  });
+  return normalizeAuthUser(data.user);
 }
 
 export async function getRecipes(
