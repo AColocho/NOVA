@@ -103,14 +103,13 @@ Every pull request should state:
 
 Screenshots are helpful for UI changes. API or schema changes should call out any required environment, setup, or migration steps.
 
-## CLA And Licensing
+## Licensing
 
-NOVA is publicly available under the GNU Affero General Public License v3.0. By intentionally submitting a contribution to this project, you agree to the following Contributor License Assignment:
+NOVA is publicly available under the GNU Affero General Public License v3.0. The license allows use, copying, modification, distribution, hosting, and commercial sale without a license fee, while requiring covered modified versions to remain open source under the same license.
 
-- You represent that you have the right to submit the contribution.
-- You assign to the maintainer of NOVA all right, title, and interest in and to your contribution, including copyright and related rights, to the maximum extent permitted by law.
-- The maintainer may use, modify, sublicense, relicense, and distribute your contribution under the AGPL v3.0 and under separate commercial license terms.
-- This CLA is required for commercial licensing, which allows the maintainer to continue operations for the long term sustainability of the project.
-- If you cannot agree to these terms, do not submit the contribution.
+NOVA does not require a Contributor License Agreement or copyright assignment. By intentionally submitting a contribution to this project, you agree that:
 
-If the maintainer requests a separate signed CLA for a contribution, that signed CLA controls in addition to this policy.
+- You have the right to submit the contribution.
+- You retain copyright in your contribution.
+- Your contribution is licensed to the project and downstream users under the same AGPL v3.0 terms as NOVA.
+- You will not submit code or assets that conflict with NOVA's AGPL v3.0 license.

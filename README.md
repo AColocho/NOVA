@@ -217,3 +217,9 @@ This dev flow:
 There is also a backend-specific guide in [NOVA_BACKEND/README.md](NOVA_BACKEND/README.md) if you want narrower API and environment details while working only on the FastAPI service.
 
 Contribution guidelines for both manual and agent-assisted work live in [contribute.md](contribute.md).
+
+## License
+
+NOVA is licensed under the GNU Affero General Public License v3.0. You may use, copy, modify, host, distribute, and sell NOVA commercially without paying a license fee. If you distribute modified versions or run modified versions for users over a network, the AGPL requires you to provide the corresponding source code under the same license.
+
+Contributions do not require a CLA or copyright assignment. Contributions are accepted under the same AGPL v3.0 terms as the rest of the project.
