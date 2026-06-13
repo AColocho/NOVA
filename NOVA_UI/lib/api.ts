@@ -10,6 +10,9 @@ import {
 import type {
   AuthSession,
   AuthUser,
+  BowelAnalysis,
+  BowelMovement,
+  BowelMovementDraft,
   Ingredient,
   LoginCredentials,
   RegisterHomePayload,
@@ -62,6 +65,7 @@ type RetriableRequestConfig = {
 const AUTH_API_PREFIX = "/api/v1/auth";
 const RECIPE_API_PREFIX = "/api/v1/recipe";
 const RECEIPT_API_PREFIX = "/api/v1/receipt";
+const BOWEL_API_PREFIX = "/api/v1/bowel";
 let refreshRequest: Promise<string> | null = null;
 
 function toNumber(value: unknown) {
@@ -226,6 +230,23 @@ function normalizeReceipt(value: unknown): Receipt {
     createdAt: toText(record.created_at),
     receiptDiscounts,
     items,
+  };
+}
+
+function normalizeBowelMovement(value: unknown): BowelMovement {
+  const record = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    id: toText(record.bowel_movement_id ?? record.id),
+    occurredOn: toText(record.occurred_on),
+    bristolType: toNumber(record.bristol_type),
+    status: toText(record.status, "normal") as BowelMovement["status"],
+    color: toText(record.color),
+    painLevel: toNumber(record.pain_level),
+    bloodPresent: Boolean(record.blood_present),
+    notes: toText(record.notes),
+    createdAt: toText(record.created_at),
+    updatedAt: toText(record.updated_at),
   };
 }
 
@@ -611,4 +632,89 @@ export async function createReceiptFromScan(
     timeout: 120000,
     signal: options?.signal,
   });
+}
+
+function buildBowelRequestPayload(payload: BowelMovementDraft) {
+  return {
+    occurred_on: payload.occurredOn,
+    bristol_type: payload.bristolType,
+    status: payload.status,
+    color: payload.color?.trim() || null,
+    pain_level: payload.painLevel,
+    blood_present: payload.bloodPresent,
+    notes: payload.notes?.trim() || null,
+  };
+}
+
+export async function getBowelMovements(
+  year: number,
+  month: number,
+  options?: RequestOptions,
+): Promise<BowelMovement[]> {
+  const { data } = await api.get(`${BOWEL_API_PREFIX}/month`, {
+    params: { year, month },
+    signal: options?.signal,
+  });
+  return Array.isArray(data?.bowel_movements)
+    ? data.bowel_movements.map(normalizeBowelMovement)
+    : [];
+}
+
+export async function createBowelMovement(
+  payload: BowelMovementDraft,
+  options?: RequestOptions,
+): Promise<BowelMovement> {
+  const { data } = await api.post(
+    `${BOWEL_API_PREFIX}/create`,
+    buildBowelRequestPayload(payload),
+    options,
+  );
+  return normalizeBowelMovement(data);
+}
+
+export async function deleteBowelMovement(
+  id: string,
+  options?: RequestOptions,
+): Promise<void> {
+  await api.delete(`${BOWEL_API_PREFIX}/delete`, {
+    data: { bowel_movement_id: id },
+    signal: options?.signal,
+  });
+}
+
+export async function analyzeBowelMovements(
+  year: number,
+  month: number,
+  options?: RequestOptions,
+): Promise<BowelAnalysis> {
+  const { data } = await api.post(
+    `${BOWEL_API_PREFIX}/analyze`,
+    { year, month },
+    { signal: options?.signal, timeout: 120000 },
+  );
+  const stats = (data?.stats ?? {}) as Record<string, unknown>;
+  const analysis = (data?.analysis ?? {}) as Record<string, unknown>;
+
+  return {
+    stats: {
+      entryCount: toNumber(stats.entry_count),
+      daysLogged: toNumber(stats.days_logged),
+      constipationPatternCount: toNumber(stats.constipation_pattern_count),
+      looseStoolPatternCount: toNumber(stats.loose_stool_pattern_count),
+      bloodPresentCount: toNumber(stats.blood_present_count),
+      highPainCount: toNumber(stats.high_pain_count),
+      urgentAttentionRecommended: Boolean(stats.urgent_attention_recommended),
+    },
+    headline: toText(analysis.headline, "Monthly pattern summary"),
+    overview: toText(analysis.overview),
+    patterns: Array.isArray(analysis.patterns) ? analysis.patterns.map(String) : [],
+    suggestions: Array.isArray(analysis.suggestions)
+      ? analysis.suggestions.map(String)
+      : [],
+    seekCare: Array.isArray(analysis.seek_care) ? analysis.seek_care.map(String) : [],
+    disclaimer: toText(
+      analysis.disclaimer,
+      "This summary is not medical advice or a diagnosis.",
+    ),
+  };
 }
