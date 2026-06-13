@@ -102,15 +102,3 @@ Every pull request should state:
 - any follow-up work or known limitations
 
 Screenshots are helpful for UI changes. API or schema changes should call out any required environment, setup, or migration steps.
-
-## CLA And Licensing
-
-NOVA is publicly available under the GNU Affero General Public License v3.0. By intentionally submitting a contribution to this project, you agree to the following Contributor License Assignment:
-
-- You represent that you have the right to submit the contribution.
-- You assign to the maintainer of NOVA all right, title, and interest in and to your contribution, including copyright and related rights, to the maximum extent permitted by law.
-- The maintainer may use, modify, sublicense, relicense, and distribute your contribution under the AGPL v3.0 and under separate commercial license terms.
-- This CLA is required for commercial licensing, which allows the maintainer to continue operations for the long term sustainability of the project.
-- If you cannot agree to these terms, do not submit the contribution.
-
-If the maintainer requests a separate signed CLA for a contribution, that signed CLA controls in addition to this policy.

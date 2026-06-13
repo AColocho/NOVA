@@ -14,6 +14,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     badge: "Ready",
   },
   {
+    name: "Movies",
+    description: "Save watchlist picks, TMDB details, and household ratings.",
+    href: "/movies",
+    badge: "Ready",
+  },
+  {
     name: "Bowel Tracker",
     description: "Privately log bowel movements and review monthly wellness patterns.",
     href: "/bowel",

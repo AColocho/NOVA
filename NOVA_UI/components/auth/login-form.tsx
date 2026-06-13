@@ -17,7 +17,8 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
-  const [email, setEmail] = useState("");
+  const [homeName, setHomeName] = useState("");
+  const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -27,8 +28,9 @@ export function LoginForm() {
     startTransition(async () => {
       try {
         await login({
-          email: email.trim(),
-          password,
+          homeName: homeName.trim(),
+          loginName: loginName.trim(),
+          password: password.trim() ? password : undefined,
         });
 
         toast.success("Signed in.");
@@ -44,7 +46,7 @@ export function LoginForm() {
     <AuthPageShell
       eyebrow="Welcome back"
       title="Log in to your home."
-      description="Use the email and password for your home account. Once you are in, your tools are ready for you."
+      description="Use your home name, your name, and your code if one is enabled. Once you are in, your tools are ready for you."
       badge="Login"
       footer={
         <p>
@@ -65,26 +67,37 @@ export function LoginForm() {
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block space-y-2">
-          <span className="text-sm font-semibold text-foreground">Email</span>
+          <span className="text-sm font-semibold text-foreground">Home name</span>
           <Input
-            type="email"
-            autoComplete="email"
-            placeholder="alex@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="organization"
+            placeholder="Jarvis Home"
+            value={homeName}
+            onChange={(event) => setHomeName(event.target.value)}
             required
           />
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-semibold text-foreground">Password</span>
+          <span className="text-sm font-semibold text-foreground">Name</span>
+          <Input
+            autoComplete="username"
+            placeholder="Jarvis"
+            value={loginName}
+            onChange={(event) => setLoginName(event.target.value)}
+            required
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-foreground">
+            Pass phrase or code
+          </span>
           <Input
             type="password"
             autoComplete="current-password"
-            placeholder="Your password"
+            placeholder="Leave blank if disabled"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            required
           />
         </label>
 

@@ -3,12 +3,26 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import UUID as SQLUUID
-from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey,
-                        Integer, Numeric, String, Text, UniqueConstraint, event,
-                        func, select)
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    event,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import (DeclarativeBase, Mapped, Session, mapped_column,
-                            relationship)
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -17,12 +31,18 @@ class Base(DeclarativeBase):
 
 class Home(Base):
     __tablename__ = "homes"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        UniqueConstraint("name_normalized", name="uq_auth_homes_name_normalized"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         SQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    name_normalized: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -36,6 +56,7 @@ class Home(Base):
     )
 
     users: Mapped[list["UserAuth"]] = relationship(back_populates="home")
+    movies: Mapped[list["Movie"]] = relationship(back_populates="home")
     recipes: Mapped[list["Recipe"]] = relationship(back_populates="home")
     receipts: Mapped[list["Receipt"]] = relationship(back_populates="home")
 
@@ -43,7 +64,15 @@ class Home(Base):
 class UserAuth(Base):
     __tablename__ = "users"
     __table_args__ = (
-        UniqueConstraint("email", name="uq_auth_users_email"),
+        UniqueConstraint(
+            "home_id", "login_name_normalized", name="uq_auth_users_home_login_name"
+        ),
+        Index(
+            "uq_auth_users_one_admin_per_home",
+            "home_id",
+            unique=True,
+            postgresql_where=text("is_home_admin"),
+        ),
         {"schema": "auth"},
     )
 
@@ -56,9 +85,14 @@ class UserAuth(Base):
         nullable=False,
         index=True,
     )
-    email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
+    login_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    login_name_normalized: Mapped[str] = mapped_column(
+        String(120), nullable=False, index=True
+    )
     display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    password_plaintext: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_home_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -86,6 +120,131 @@ class UserAuth(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    created_movies: Mapped[list["Movie"]] = relationship(
+        back_populates="created_by_user",
+        foreign_keys="Movie.created_by_user_id",
+    )
+    movie_ratings: Mapped[list["MovieRating"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Movie(Base):
+    __tablename__ = "movies"
+    __table_args__ = (
+        UniqueConstraint("home_id", "tmdb_id", name="uq_movies_home_tmdb_id"),
+        CheckConstraint(
+            "source IN ('tmdb', 'manual')",
+            name="ck_movies_source",
+        ),
+        CheckConstraint(
+            "(source = 'tmdb' AND tmdb_id IS NOT NULL) OR (source = 'manual' AND tmdb_id IS NULL)",
+            name="ck_movies_source_tmdb_id",
+        ),
+        CheckConstraint(
+            "runtime_minutes IS NULL OR runtime_minutes >= 0",
+            name="ck_movies_runtime_minutes_non_negative",
+        ),
+        CheckConstraint(
+            "tmdb_vote_count IS NULL OR tmdb_vote_count >= 0",
+            name="ck_movies_tmdb_vote_count_non_negative",
+        ),
+        {"schema": "movie"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    home_id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("auth.homes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("auth.users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    tmdb_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    overview: Mapped[str | None] = mapped_column(Text, nullable=True)
+    release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    runtime_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    poster_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    backdrop_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    tmdb_vote_average: Mapped[Decimal | None] = mapped_column(
+        Numeric(4, 2), nullable=True
+    )
+    tmdb_vote_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    genres: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    home: Mapped["Home"] = relationship(back_populates="movies")
+    created_by_user: Mapped["UserAuth | None"] = relationship(
+        back_populates="created_movies",
+        foreign_keys=[created_by_user_id],
+    )
+    ratings: Mapped[list["MovieRating"]] = relationship(
+        back_populates="movie",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class MovieRating(Base):
+    __tablename__ = "movie_ratings"
+    __table_args__ = (
+        UniqueConstraint("movie_id", "user_id", name="uq_movie_ratings_movie_user"),
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_movie_ratings_rating"),
+        {"schema": "movie"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    movie_id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("movie.movies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    movie: Mapped["Movie"] = relationship(back_populates="ratings")
+    user: Mapped["UserAuth"] = relationship(back_populates="movie_ratings")
 
 
 class Recipe(Base):
@@ -347,9 +506,7 @@ class ReceiptItem(Base):
 class ReceiptDiscount(Base):
     __tablename__ = "receipt_discounts"
     __table_args__ = (
-        CheckConstraint(
-            "amount >= 0", name="ck_receipt_discounts_amount_non_negative"
-        ),
+        CheckConstraint("amount >= 0", name="ck_receipt_discounts_amount_non_negative"),
         {"schema": "receipt"},
     )
 
