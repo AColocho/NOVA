@@ -18,7 +18,7 @@ export default function HomePage() {
         <PageIntro
           eyebrow="Home"
           title="Choose an app and get started."
-          description="This home screen keeps your tools in one calm place. Open Recipes to manage saved meals or Receipts to review purchases, upload scans, and track what you spent."
+          description="This home screen keeps your tools in one calm place. Manage recipes, review purchases, or privately track personal wellness patterns."
         />
       </section>
 

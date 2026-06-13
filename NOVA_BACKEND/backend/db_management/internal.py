@@ -116,6 +116,10 @@ class UserAuth(Base):
         back_populates="created_by_user",
         foreign_keys="Receipt.created_by_user_id",
     )
+    bowel_movements: Mapped[list["BowelMovement"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     created_movies: Mapped[list["Movie"]] = relationship(
         back_populates="created_by_user",
         foreign_keys="Movie.created_by_user_id",
@@ -528,6 +532,51 @@ class ReceiptDiscount(Base):
 
     receipt: Mapped["Receipt"] = relationship(back_populates="discounts")
     item: Mapped["ReceiptItem | None"] = relationship(back_populates="discounts")
+
+
+class BowelMovement(Base):
+    __tablename__ = "bowel_movements"
+    __table_args__ = (
+        CheckConstraint(
+            "bristol_type >= 1 AND bristol_type <= 7",
+            name="ck_bowel_movements_bristol_type",
+        ),
+        CheckConstraint(
+            "pain_level >= 0 AND pain_level <= 10",
+            name="ck_bowel_movements_pain_level",
+        ),
+        {"schema": "health"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    occurred_on: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    bristol_type: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="normal")
+    color: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    pain_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    blood_present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    user: Mapped["UserAuth"] = relationship(back_populates="bowel_movements")
 
 
 @event.listens_for(Session, "before_flush")
