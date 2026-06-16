@@ -135,6 +135,50 @@ export type ReceiptDraft = {
   items: ReceiptItem[];
 };
 
+export type BowelStatus =
+  | "constipated"
+  | "normal"
+  | "loose"
+  | "urgent"
+  | "incomplete"
+  | "other";
+
+export type BowelMovementDraft = {
+  occurredOn: string;
+  bristolType: number;
+  status: BowelStatus;
+  color?: string;
+  painLevel: number;
+  bloodPresent: boolean;
+  notes?: string;
+};
+
+export type BowelMovement = BowelMovementDraft & {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BowelAnalysisStats = {
+  entryCount: number;
+  daysLogged: number;
+  constipationPatternCount: number;
+  looseStoolPatternCount: number;
+  bloodPresentCount: number;
+  highPainCount: number;
+  urgentAttentionRecommended: boolean;
+};
+
+export type BowelAnalysis = {
+  stats: BowelAnalysisStats;
+  headline: string;
+  overview: string;
+  patterns: string[];
+  suggestions: string[];
+  seekCare: string[];
+  disclaimer: string;
+};
+
 export type MovieRating = {
   userId: string;
   userName: string;
